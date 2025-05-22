@@ -1,0 +1,70 @@
+#Statement 18
+# Implement a DNN using batch sizes 32 and 64 with a fixed learning rate of 0.001 on the UCI dataset. Compare model loss and performance.
+
+import pandas as pd
+import numpy as np
+import time
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
+
+# 🔹 Step 1: Load dataset
+data = pd.read_csv("uci_digits.csv")  # Replace with your file
+
+# 🔹 Step 2: Features and labels
+X = data.iloc[:, :-1].values  # First 64 columns
+y = data.iloc[:, -1].values   # Last column = labels (0-9)
+
+# 🔹 Step 3: Normalize data
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 🔹 Step 4: Train-Test split
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# 🔹 Step 5: Function to build model
+def create_model():
+    model = Sequential()
+    model.add(Dense(128, input_dim=64, activation='relu'))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dense(10, activation='softmax'))
+    model.compile(optimizer=Adam(learning_rate=0.001),
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
+    return model
+
+# 🔹 Step 6: Train with batch size 32
+print("\n📦 Training with Batch Size = 32")
+model_32 = create_model()
+start_32 = time.time()
+history_32 = model_32.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0)
+end_32 = time.time()
+
+# 🔹 Step 7: Train with batch size 64
+print("\n📦 Training with Batch Size = 64")
+model_64 = create_model()
+start_64 = time.time()
+history_64 = model_64.fit(X_train, y_train, epochs=50, batch_size=64, validation_split=0.2, verbose=0)
+end_64 = time.time()
+
+# 🔹 Step 8: Evaluate both models
+loss_32, acc_32 = model_32.evaluate(X_test, y_test, verbose=0)
+loss_64, acc_64 = model_64.evaluate(X_test, y_test, verbose=0)
+
+# 🔹 Step 9: Print comparison
+print(f"\n📊 Comparison:")
+print(f"Batch Size 32: Loss = {loss_32:.4f}, Accuracy = {acc_32 * 100:.2f}%, Time = {end_32 - start_32:.2f}s")
+print(f"Batch Size 64: Loss = {loss_64:.4f}, Accuracy = {acc_64 * 100:.2f}%, Time = {end_64 - start_64:.2f}s")
+
+# 🔹 Step 10: Plot loss comparison
+plt.plot(history_32.history['loss'], label='Train Loss (Batch 32)')
+plt.plot(history_64.history['loss'], label='Train Loss (Batch 64)')
+plt.title('Loss Comparison for Batch Sizes')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.grid(True)
+plt.show()

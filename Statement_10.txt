@@ -1,0 +1,50 @@
+# Statement 10
+# Preprocess the Alphabet CSV dataset using label encoding and standard scaling, then train a simple DNN using batch size 32 and learning rate 0.0001
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
+import time
+
+# 🔹 Step 1: Load dataset
+data = pd.read_csv("alphabet_ocr.csv")  # 🔁 Replace with actual file name
+
+# 🔹 Step 2: Split features and labels
+X = data.iloc[:, :-1].values   # All but last column
+y = data.iloc[:, -1].values    # Last column: labels A-Z
+
+# 🔹 Step 3: Encode labels A–Z into 0–25
+label_encoder = LabelEncoder()
+y_encoded = label_encoder.fit_transform(y)
+
+# 🔹 Step 4: Scale features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 🔹 Step 5: Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42)
+
+# 🔹 Step 6: Build DNN model
+model = Sequential()
+model.add(Dense(256, input_dim=X_train.shape[1], activation='relu'))
+model.add(Dense(128, activation='relu'))
+model.add(Dense(26, activation='softmax'))  # 26 classes for A-Z
+
+# 🔹 Step 7: Compile model
+optimizer = Adam(learning_rate=0.0001)
+model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# 🔹 Step 8: Train and time the model
+start = time.time()
+history = model.fit(X_train, y_train, epochs=10, batch_size=32, validation_split=0.2, verbose=1)
+end = time.time()
+
+# 🔹 Step 9: Evaluate on test set
+loss, accuracy = model.evaluate(X_test, y_test, verbose=0)
+print(f"\n✅ Training Time: {end - start:.2f} seconds")
+print(f"✅ Test Accuracy: {accuracy * 100:.2f}%")
+print(f"✅ Test Loss: {loss:.4f}")

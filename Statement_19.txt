@@ -1,0 +1,77 @@
+# Statement 19
+# Preprocess the Alphabet dataset and train both a DNN and a CNN. Use Adam optimizer with a batch size of 64. Compare accuracy across 20 epochs.
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Reshape
+from tensorflow.keras.optimizers import Adam
+
+# 🔹 Step 1: Load dataset
+data = pd.read_csv("alphabet_ocr.csv")  # Replace with actual file
+
+# 🔹 Step 2: Extract features and labels
+X = data.iloc[:, :-1].values
+y = data.iloc[:, -1].values
+
+# 🔹 Step 3: Encode labels (A–Z → 0–25)
+label_encoder = LabelEncoder()
+y_encoded = label_encoder.fit_transform(y)
+y_categorical = to_categorical(y_encoded, num_classes=26)
+
+# 🔹 Step 4: Scale features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 🔹 Step 5: Reshape for CNN input (assume 16×16 grayscale)
+X_cnn = X_scaled.reshape(-1, 16, 16, 1)
+
+# 🔹 Step 6: Train-test split
+X_train_dnn, X_test_dnn, y_train, y_test = train_test_split(X_scaled, y_categorical, test_size=0.2, random_state=42)
+X_train_cnn, X_test_cnn, _, _ = train_test_split(X_cnn, y_categorical, test_size=0.2, random_state=42)
+
+# 🔹 Step 7: Build DNN model
+dnn_model = Sequential([
+    Dense(512, input_dim=X_train_dnn.shape[1], activation='relu'),
+    Dense(256, activation='relu'),
+    Dense(128, activation='relu'),
+    Dense(26, activation='softmax')
+])
+dnn_model.compile(optimizer=Adam(learning_rate=0.001),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+# 🔹 Step 8: Build CNN model
+cnn_model = Sequential([
+    Conv2D(32, (3, 3), activation='relu', input_shape=(16, 16, 1)),
+    MaxPooling2D((2, 2)),
+    Conv2D(64, (3, 3), activation='relu'),
+    MaxPooling2D((2, 2)),
+    Flatten(),
+    Dense(128, activation='relu'),
+    Dense(26, activation='softmax')
+])
+cnn_model.compile(optimizer=Adam(learning_rate=0.001),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+# 🔹 Step 9: Train both models
+print("\n📦 Training DNN...")
+history_dnn = dnn_model.fit(X_train_dnn, y_train, epochs=20, batch_size=64, validation_split=0.2, verbose=1)
+
+print("\n🧠 Training CNN...")
+history_cnn = cnn_model.fit(X_train_cnn, y_train, epochs=20, batch_size=64, validation_split=0.2, verbose=1)
+
+# 🔹 Step 10: Plot Accuracy Comparison
+plt.plot(history_dnn.history['accuracy'], label='DNN Train Acc')
+plt.plot(history_cnn.history['accuracy'], label='CNN Train Acc')
+plt.title("Model Accuracy Comparison")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.grid(True)
+plt.show()

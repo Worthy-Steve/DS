@@ -1,0 +1,72 @@
+#Statement 2
+#Train a DNN using the SGD optimizer with a learning rate of 0.0001 on the MNIST dataset and analyze the model's performance.
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, roc_auc_score, roc_curve
+#from tensorflow.keras.datasets import mnist
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.optimizers import Adam, RMSprop, SGD
+from tensorflow.keras.utils import to_categorical
+
+# # Load MNIST dataset
+# (x_train, y_train), (x_test, y_test) = mnist.load_data()
+# x_train, x_test = x_train / 255.0, x_test / 255.0
+# y_train_cat = to_categorical(y_train, 10)
+# y_test_cat = to_categorical(y_test, 10)
+
+# Step 1: Load MNIST CSV files
+train_df = pd.read_csv("D:\SEM 6\Deep Learning\Datasets\MNIST\mnist_train.csv")  # Make sure this file exists in the working directory
+test_df = pd.read_csv("D:\SEM 6\Deep Learning\Datasets\MNIST\mnist_test.csv")
+
+# Step 2: Preprocess Data
+x_train = train_df.iloc[:, 1:].values.reshape(-1, 28, 28) / 255.0  # Normalize pixel values
+y_train_cat = to_categorical(train_df.iloc[:, 0].values, 10)          # One-hot encode labels
+
+x_test = test_df.iloc[:, 1:].values.reshape(-1, 28, 28) / 255.0
+y_test_cat = to_categorical(test_df.iloc[:, 0].values, 10)
+
+# Build the DNN model
+model = Sequential([
+    Flatten(input_shape=(28, 28)),
+    Dense(128, activation='relu'),
+    Dense(64, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+# Compile model with SGD optimizer and learning rate 0.0001
+optimizer = SGD(learning_rate=0.0001)
+model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Train the model
+history = model.fit(x_train, y_train_cat, epochs=10, batch_size=32,
+                    validation_split=0.1, verbose=2)
+
+# Evaluate model on test data
+test_loss, test_acc = model.evaluate(x_test, y_test_cat, verbose=0)
+print(f"\nTest Accuracy: {test_acc:.4f}")
+
+# Classification report
+y_pred = np.argmax(model.predict(x_test), axis=1)
+y_true = np.argmax(y_test_cat, axis=1)  # <-- FIX: convert one-hot to labels
+print("\nClassification Report:\n", classification_report(y_true, y_pred))
+
+
+# Plot training accuracy and loss
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Val Accuracy')
+plt.title('Accuracy Over Epochs')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
+
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Val Loss')
+plt.title('Loss Over Epochs')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
