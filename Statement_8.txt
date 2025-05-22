@@ -1,0 +1,80 @@
+#Statement 8
+#Evaluating DNN on CIFAR-10 Using Batch Size Variation
+#● Load CIFAR-10 dataset
+#● Use a feed-forward network with BatchNormalization
+#● Train with batch sizes 32 and 64, keeping other parameters constant
+#● Use Adam optimizer and train for 10 epochs
+#● Compare accuracy and plot graphs
+
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, BatchNormalization, Flatten
+from tensorflow.keras.optimizers import Adam
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelBinarizer
+
+# Load and preprocess dataset
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    X_train = train_df.iloc[:, 1:].values / 255.0
+    y_train = train_df.iloc[:, 0].values
+
+    X_test = test_df.iloc[:, 1:].values / 255.0
+    y_test = test_df.iloc[:, 0].values
+
+    # Reshape and encode labels
+    X_train = X_train.reshape(-1, 32, 32, 3)
+    X_test = X_test.reshape(-1, 32, 32, 3)
+
+    lb = LabelBinarizer()
+    y_train = lb.fit_transform(y_train)
+    y_test = lb.transform(y_test)
+
+    return (X_train, y_train), (X_test, y_test)
+
+# Build model
+def create_model():
+    model = Sequential([
+        Flatten(input_shape=(32, 32, 3)),
+        Dense(512, activation='relu'),
+        BatchNormalization(),
+        Dense(256, activation='relu'),
+        BatchNormalization(),
+        Dense(10, activation='softmax')
+    ])
+    model.compile(optimizer=Adam(), loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+# Train and evaluate
+def evaluate_batch_sizes(X_train, y_train, X_test, y_test, batch_sizes=[32, 64]):
+    history_dict = {}
+    for batch_size in batch_sizes:
+        print(f"\nTraining with batch size: {batch_size}")
+        model = create_model()
+        history = model.fit(X_train, y_train, epochs=10, batch_size=batch_size,
+                            validation_data=(X_test, y_test), verbose=2)
+        history_dict[batch_size] = history
+    return history_dict
+
+# Plotting
+def plot_results(history_dict):
+    plt.figure(figsize=(10, 5))
+    for batch_size, history in history_dict.items():
+        plt.plot(history.history['val_accuracy'], label=f'Batch Size {batch_size}')
+    plt.title('Validation Accuracy vs Epochs')
+    plt.xlabel('Epochs')
+    plt.ylabel('Validation Accuracy')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+# Run the process
+(X_train, y_train), (X_test, y_test) = load_data("train.csv", "test.csv")
+histories = evaluate_batch_sizes(X_train, y_train, X_test, y_test)
+plot_results(histories)

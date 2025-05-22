@@ -1,0 +1,87 @@
+# Statement 4
+# Use SGD optimizer with a learning rate of 0.01 to train a DNN on the Wildfire dataset, then evaluate precision, recall, and F1-score with supporting bar plots.
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, precision_score, recall_score, f1_score
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Flatten, Dense
+from tensorflow.keras.optimizers import SGD
+
+# 🔹 Step 1: Define data paths
+train_val_path = r"D:\SEM 6\Deep Learning\Datasets\forest_fire\Training and Validation"  # update this path
+test_path = r"D:\SEM 6\Deep Learning\Datasets\forest_fire\Testing"  # update this path
+
+# 🔹 Step 2: Image preprocessing
+img_height, img_width = 64, 64
+batch_size = 32
+
+train_datagen = ImageDataGenerator(rescale=1./255, validation_split=0.1)
+
+train_generator = train_datagen.flow_from_directory(
+    train_val_path,
+    target_size=(img_height, img_width),
+    batch_size=batch_size,
+    class_mode='binary',
+    subset='training',
+    shuffle=True
+)
+
+val_generator = train_datagen.flow_from_directory(
+    train_val_path,
+    target_size=(img_height, img_width),
+    batch_size=batch_size,
+    class_mode='binary',
+    subset='validation',
+    shuffle=False
+)
+
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+test_generator = test_datagen.flow_from_directory(
+    test_path,
+    target_size=(img_height, img_width),
+    batch_size=1,
+    class_mode='binary',
+    shuffle=False
+)
+
+# 🔹 Step 3: Build the DNN model
+model = Sequential([
+    Flatten(input_shape=(img_height, img_width, 3)),
+    Dense(128, activation='relu'),
+    Dense(64, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
+
+# 🔹 Step 4: Compile with SGD optimizer
+model.compile(optimizer=SGD(learning_rate=0.01), loss='binary_crossentropy', metrics=['accuracy'])
+
+# 🔹 Step 5: Train the model
+history = model.fit(train_generator, epochs=10, validation_data=val_generator, verbose=2)
+
+# 🔹 Step 6: Evaluate on test set
+test_generator.reset()
+y_pred_prob = model.predict(test_generator)
+y_pred = (y_pred_prob > 0.5).astype(int).flatten()
+y_true = test_generator.classes
+
+# 🔹 Step 7: Compute and display metrics
+precision = precision_score(y_true, y_pred)
+recall = recall_score(y_true, y_pred)
+f1 = f1_score(y_true, y_pred)
+
+# Bar chart
+metrics = [precision, recall, f1]
+labels = ['Precision', 'Recall', 'F1 Score']
+
+plt.bar(labels, metrics, color=['blue', 'green', 'red'])
+plt.title('Evaluation Metrics on Wildfire Test Set')
+plt.ylim(0, 1)
+plt.ylabel('Score')
+plt.show()
+
+# Classification report
+print("\nClassification Report:\n")
+print(classification_report(y_true, y_pred, target_names=['nofire', 'fire']))

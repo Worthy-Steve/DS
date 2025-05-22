@@ -1,0 +1,52 @@
+# Statement 9
+# Train a DNN on the UCI dataset using batch size 32 and a learning rate of 0.0001. Evaluate training time and accuracy
+
+
+import pandas as pd
+import numpy as np
+import time
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, classification_report
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
+
+# 🔹 Step 1: Load dataset from CSV
+data = pd.read_csv("uci_digits.csv")  # Replace with actual CSV file name
+
+# 🔹 Step 2: Split features and labels
+X = data.iloc[:, :-1].values  # First 64 columns = features
+y = data.iloc[:, -1].values   # Last column = labels (0–9)
+
+# 🔹 Step 3: Normalize features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 🔹 Step 4: Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# 🔹 Step 5: Build DNN model
+model = Sequential()
+model.add(Dense(128, input_dim=64, activation='relu'))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(10, activation='softmax'))  # 10 classes (0–9)
+
+# 🔹 Step 6: Compile model
+optimizer = Adam(learning_rate=0.0001)
+model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# 🔹 Step 7: Train the model and measure time
+start_time = time.time()
+history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=1)
+end_time = time.time()
+
+# 🔹 Step 8: Evaluate
+test_loss, test_acc = model.evaluate(X_test, y_test, verbose=0)
+print(f"\nTraining Time: {end_time - start_time:.2f} seconds")
+print(f"Test Accuracy: {test_acc * 100:.2f}%")
+
+# 🔹 Optional: Classification report
+y_pred = model.predict(X_test).argmax(axis=1)
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))

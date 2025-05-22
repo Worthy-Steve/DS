@@ -1,0 +1,74 @@
+#Statement 7
+# Image Classification on MNIST Using DNN with Learning Rate Variation
+# ● Use the MNIST dataset and build a DNN
+# ● Train the same model using learning rates: 0.01, 0.001
+# ● Use SGD optimizer and track accuracy for each run
+# ● Plot loss and accuracy for comparison
+
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, roc_auc_score, roc_curve
+#from tensorflow.keras.datasets import mnist
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.optimizers import Adam, RMSprop, SGD
+from tensorflow.keras.utils import to_categorical
+
+# # Load MNIST dataset
+# (x_train, y_train), (x_test, y_test) = mnist.load_data()
+# x_train, x_test = x_train / 255.0, x_test / 255.0
+# y_train_cat = to_categorical(y_train, 10)
+# y_test_cat = to_categorical(y_test, 10)
+
+# Step 1: Load MNIST CSV files
+train_df = pd.read_csv("D:\SEM 6\Deep Learning\Datasets\MNIST\mnist_train.csv")  # Make sure this file exists in the working directory
+test_df = pd.read_csv("D:\SEM 6\Deep Learning\Datasets\MNIST\mnist_test.csv")
+
+# Step 2: Preprocess Data
+x_train = train_df.iloc[:, 1:].values.reshape(-1, 28, 28) / 255.0  # Normalize pixel values
+y_train_cat = to_categorical(train_df.iloc[:, 0].values, 10)          # One-hot encode labels
+
+x_test = test_df.iloc[:, 1:].values.reshape(-1, 28, 28) / 255.0
+y_test_cat = to_categorical(test_df.iloc[:, 0].values, 10)
+
+# Function to build and train model
+def train_model(learning_rate):
+    model = Sequential([
+        Flatten(input_shape=(28, 28)),
+        Dense(128, activation='relu'),
+        Dense(64, activation='relu'),
+        Dense(10, activation='softmax')
+    ])
+    optimizer = SGD(learning_rate=learning_rate)
+    model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+    history = model.fit(x_train, y_train_cat, epochs=10, batch_size=32,
+                        validation_split=0.1, verbose=2)
+    return history
+
+# Train models with two learning rates
+history_001 = train_model(0.001)
+history_01 = train_model(0.01)
+
+# Plot accuracy comparison
+plt.plot(history_001.history['accuracy'], label='Train Acc (LR=0.001)')
+plt.plot(history_001.history['val_accuracy'], label='Val Acc (LR=0.001)')
+plt.plot(history_01.history['accuracy'], label='Train Acc (LR=0.01)')
+plt.plot(history_01.history['val_accuracy'], label='Val Acc (LR=0.01)')
+plt.title('Accuracy Comparison (SGD)')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
+
+# Plot loss comparison
+plt.plot(history_001.history['loss'], label='Train Loss (LR=0.001)')
+plt.plot(history_001.history['val_loss'], label='Val Loss (LR=0.001)')
+plt.plot(history_01.history['loss'], label='Train Loss (LR=0.01)')
+plt.plot(history_01.history['val_loss'], label='Val Loss (LR=0.01)')
+plt.title('Loss Comparison (SGD)')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()

@@ -1,0 +1,79 @@
+#Statement 13
+#Compare the performance of a CNN and a DNN on the CIFAR-10 dataset. Highlight differences #in accuracy and training time.
+
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import time
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, BatchNormalization, Activation
+from tensorflow.keras.utils import to_categorical
+
+# Load and preprocess dataset
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    X_train = train_df.iloc[:, 1:].values.reshape(-1, 32, 32, 3).astype('float32') / 255.0
+    y_train = to_categorical(train_df.iloc[:, 0])
+
+    X_test = test_df.iloc[:, 1:].values.reshape(-1, 32, 32, 3).astype('float32') / 255.0
+    y_test = to_categorical(test_df.iloc[:, 0])
+
+    return (X_train, y_train), (X_test, y_test)
+
+# DNN model
+def build_dnn():
+    model = Sequential([
+        Flatten(input_shape=(32, 32, 3)),
+        Dense(512), BatchNormalization(), Activation('relu'),
+        Dense(256), BatchNormalization(), Activation('relu'),
+        Dense(10, activation='softmax')
+    ])
+    return model
+
+# CNN model
+def build_cnn():
+    model = Sequential([
+        Conv2D(32, (3,3), padding='same', activation='relu', input_shape=(32,32,3)),
+        MaxPooling2D(pool_size=(2,2)),
+        Conv2D(64, (3,3), padding='same', activation='relu'),
+        MaxPooling2D(pool_size=(2,2)),
+        Flatten(),
+        Dense(256, activation='relu'),
+        Dense(10, activation='softmax')
+    ])
+    return model
+
+# Training function
+def train_model(model, X_train, y_train, X_test, y_test):
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    start = time.time()
+    history = model.fit(X_train, y_train, epochs=10, batch_size=32, validation_data=(X_test, y_test), verbose=0)
+    end = time.time()
+    return history, end - start
+
+# Main comparison
+(X_train, y_train), (X_test, y_test) = load_data('train.csv', 'test.csv')
+
+dnn_model = build_dnn()
+cnn_model = build_cnn()
+
+dnn_history, dnn_time = train_model(dnn_model, X_train, y_train, X_test, y_test)
+cnn_history, cnn_time = train_model(cnn_model, X_train, y_train, X_test, y_test)
+
+# Plot accuracy
+plt.plot(dnn_history.history['val_accuracy'], label='DNN')
+plt.plot(cnn_history.history['val_accuracy'], label='CNN')
+plt.title('Validation Accuracy Comparison')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Print results
+print(f"DNN Accuracy: {dnn_history.history['val_accuracy'][-1]:.4f}, Time: {dnn_time:.2f}s")
+print(f"CNN Accuracy: {cnn_history.history['val_accuracy'][-1]:.4f}, Time: {cnn_time:.2f}s")
